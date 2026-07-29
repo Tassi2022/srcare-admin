@@ -10,9 +10,12 @@ export default function Mensagens() {
   const [carregandoConversas, setCarregandoConversas] = useState(true);
   const [carregandoMensagens, setCarregandoMensagens] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  const [busca, setBusca] = useState('');
+  const [acompanhantes, setAcompanhantes] = useState([]);
 
   useEffect(() => {
     carregarConversas();
+    carregarAcompanhantes();
   }, []);
 
   function carregarConversas() {
@@ -23,15 +26,21 @@ export default function Mensagens() {
       .finally(() => setCarregandoConversas(false));
   }
 
+  function carregarAcompanhantes() {
+    api.get(API_URL + '/admin/acompanhantes')
+      .then(r => setAcompanhantes(r.data.acompanhantes || []))
+      .catch(e => console.log(e));
+  }
+
   function abrirConversa(acompanhanteId) {
     setSelecionado(acompanhanteId);
+    setBusca('');
     setCarregandoMensagens(true);
     api.get(API_URL + '/mensagens', { params: { acompanhante_id: acompanhanteId, marcar_lido_por: 'admin' } })
       .then(r => setMensagens(r.data.mensagens))
       .catch(e => console.log(e))
       .finally(() => {
         setCarregandoMensagens(false);
-        // Zera o contador de não lidas na lista, já que acabamos de marcar como lida
         setConversas(prev => prev.map(c => c.acompanhante_id === acompanhanteId ? { ...c, nao_lidas: 0 } : c));
       });
   }
@@ -49,7 +58,7 @@ export default function Mensagens() {
       });
       setMensagens(prev => [...prev, resp.data.mensagem]);
       setTexto('');
-      carregarConversas(); // atualiza a prévia/última mensagem na lista
+      carregarConversas();
     } catch (e2) {
       alert('Não foi possível enviar a mensagem.');
     } finally {
@@ -57,55 +66,92 @@ export default function Mensagens() {
     }
   }
 
+  const idsComConversa = new Set(conversas.map(c => c.acompanhante_id));
+
+  const resultadosBusca = busca.trim()
+    ? acompanhantes.filter(a => (a.nome || '').toLowerCase().includes(busca.trim().toLowerCase()))
+    : [];
+
   return (
     <div>
       <h1 className="page-title">Chat de Suporte</h1>
 
       <div style={{ display: 'flex', height: '75vh', background: '#fff', borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
 
-        {/* Lista de conversas */}
-        <div style={{ width: 300, borderRight: '1px solid #eee', overflowY: 'auto' }}>
-          {carregandoConversas ? (
-            <div style={{ padding: 16, color: '#888' }}>Carregando...</div>
-          ) : conversas.length === 0 ? (
-            <div style={{ padding: 16, color: '#888' }}>Nenhuma conversa ainda</div>
-          ) : (
-            conversas.map(c => (
-              <div
-                key={c.acompanhante_id}
-                onClick={() => abrirConversa(c.acompanhante_id)}
-                style={{
-                  padding: '12px 16px',
-                  cursor: 'pointer',
-                  borderBottom: '1px solid #f0f0f0',
-                  background: selecionado === c.acompanhante_id ? '#eef4fa' : '#fff',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <strong style={{ fontSize: 14 }}>{c.acompanhante_nome || 'Acompanhante #' + c.acompanhante_id}</strong>
-                  {c.nao_lidas > 0 && (
-                    <span style={{ background: '#e74c3c', color: '#fff', borderRadius: 10, fontSize: 11, padding: '2px 7px' }}>
-                      {c.nao_lidas}
-                    </span>
-                  )}
+        {/* Lista de conversas + busca */}
+        <div style={{ width: 300, borderRight: '1px solid #eee', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: 12, borderBottom: '1px solid #eee' }}>
+            <input
+              type="text"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar acompanhante para iniciar conversa..."
+              style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }}
+            />
+          </div>
+
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            {busca.trim() ? (
+              resultadosBusca.length === 0 ? (
+                <div style={{ padding: 16, color: '#888', fontSize: 13 }}>Nenhum acompanhante encontrado</div>
+              ) : (
+                resultadosBusca.map(a => (
+                  <div
+                    key={a.id}
+                    onClick={() => abrirConversa(a.id)}
+                    style={{ padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', background: selecionado === a.id ? '#eef4fa' : '#fff' }}
+                  >
+                    <strong style={{ fontSize: 14 }}>{a.nome}</strong>
+                    <div style={{ fontSize: 12, color: '#888' }}>
+                      {idsComConversa.has(a.id) ? 'Já tem conversa' : 'Iniciar nova conversa'}
+                    </div>
+                  </div>
+                ))
+              )
+            ) : carregandoConversas ? (
+              <div style={{ padding: 16, color: '#888' }}>Carregando...</div>
+            ) : conversas.length === 0 ? (
+              <div style={{ padding: 16, color: '#888' }}>Nenhuma conversa ainda</div>
+            ) : (
+              conversas.map(c => (
+                <div
+                  key={c.acompanhante_id}
+                  onClick={() => abrirConversa(c.acompanhante_id)}
+                  style={{
+                    padding: '12px 16px',
+                    cursor: 'pointer',
+                    borderBottom: '1px solid #f0f0f0',
+                    background: selecionado === c.acompanhante_id ? '#eef4fa' : '#fff',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <strong style={{ fontSize: 14 }}>{c.acompanhante_nome || 'Acompanhante #' + c.acompanhante_id}</strong>
+                    {c.nao_lidas > 0 && (
+                      <span style={{ background: '#e74c3c', color: '#fff', borderRadius: 10, fontSize: 11, padding: '2px 7px' }}>
+                        {c.nao_lidas}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 13, color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {c.ultima_remetente === 'admin' ? 'Você: ' : ''}{c.ultima_mensagem}
+                  </div>
                 </div>
-                <div style={{ fontSize: 13, color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {c.ultima_remetente === 'admin' ? 'Você: ' : ''}{c.ultima_mensagem}
-                </div>
-              </div>
-            ))
-          )}
+              ))
+            )}
+          </div>
         </div>
 
         {/* Janela do chat */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           {!selecionado ? (
-            <div style={{ margin: 'auto', color: '#888' }}>Selecione uma conversa</div>
+            <div style={{ margin: 'auto', color: '#888' }}>Selecione uma conversa ou busque um acompanhante</div>
           ) : (
             <>
               <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
                 {carregandoMensagens ? (
                   <div style={{ color: '#888' }}>Carregando mensagens...</div>
+                ) : mensagens.length === 0 ? (
+                  <div style={{ color: '#888' }}>Nenhuma mensagem ainda. Envie a primeira!</div>
                 ) : (
                   mensagens.map(m => (
                     <div
