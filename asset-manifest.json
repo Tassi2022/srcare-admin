@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/srcare-admin/static/css/main.42cc3b01.css",
-    "main.js": "/srcare-admin/static/js/main.214a73c9.js",
+    "main.js": "/srcare-admin/static/js/main.c89eb095.js",
     "index.html": "/srcare-admin/index.html",
     "main.42cc3b01.css.map": "/srcare-admin/static/css/main.42cc3b01.css.map",
-    "main.214a73c9.js.map": "/srcare-admin/static/js/main.214a73c9.js.map"
+    "main.c89eb095.js.map": "/srcare-admin/static/js/main.c89eb095.js.map"
   },
   "entrypoints": [
     "static/css/main.42cc3b01.css",
-    "static/js/main.214a73c9.js"
+    "static/js/main.c89eb095.js"
   ]
 }
