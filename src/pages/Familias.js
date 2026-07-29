@@ -1,5 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
+import api from '../auth';
 import API_URL from '../config';
 
 export default function Familias() {
@@ -7,7 +7,7 @@ export default function Familias() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios.get(API_URL + '/admin/familias')
+    api.get(API_URL + '/admin/familias')
       .then(r => setLista(r.data.familias || []))
       .catch(e => console.log(e))
       .finally(() => setLoading(false));

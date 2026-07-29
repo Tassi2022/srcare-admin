@@ -1,5 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
+import api from '../auth';
 import API_URL from '../config';
 
 export default function Servicos() {
@@ -8,7 +8,7 @@ export default function Servicos() {
   const [filtro, setFiltro] = useState('todos');
 
   useEffect(() => {
-    axios.get(API_URL + '/admin/servicos')
+    api.get(API_URL + '/admin/servicos')
       .then(r => setLista(r.data.servicos || []))
       .catch(e => console.log(e))
       .finally(() => setLoading(false));

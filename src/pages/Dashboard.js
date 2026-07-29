@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../auth';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import API_URL from '../config';
 
@@ -10,7 +10,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios.get(API_URL + '/admin/dashboard')
+    api.get(API_URL + '/admin/dashboard')
       .then(r => setDados(r.data))
       .catch(e => console.log(e))
       .finally(() => setLoading(false));
@@ -19,7 +19,8 @@ export default function Dashboard() {
   if (loading) return <div className="loading">Carregando dashboard...</div>;
   if (!dados) return <div className="loading">Erro ao carregar dados</div>;
 
-  const { resumo, servicos_por_status, ultimos_servicos, acompanhantes_pendentes } = dados;
+  const { resumo, ultimos_servicos, acompanhantes_pendentes } = dados;
+  const servicos_por_status = (dados.servicos_por_status || []).map(item => ({ ...item, total: Number(item.total) }));
 
   return (
     <div>
@@ -111,3 +112,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+

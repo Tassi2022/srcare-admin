@@ -1,5 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
+import api from '../auth';
 import API_URL from '../config';
 
 const PROFISSOES = {
@@ -22,7 +22,7 @@ export default function Acompanhantes() {
 
   const carregar = async () => {
     try {
-      const res = await axios.get(API_URL + '/admin/acompanhantes');
+      const res = await api.get(API_URL + '/admin/acompanhantes');
       setLista(res.data.acompanhantes || []);
     } catch (e) {
       console.log(e);
@@ -36,7 +36,7 @@ export default function Acompanhantes() {
   const verificar = async (id, status) => {
     setProcessando(id);
     try {
-      await axios.put(API_URL + '/admin/acompanhantes/' + id + '/verificar', { status });
+      await api.put(API_URL + '/admin/acompanhantes/' + id + '/verificar', { status });
       alert('Status atualizado para: ' + status);
       carregar();
       setSelecionado(null);
@@ -73,7 +73,7 @@ export default function Acompanhantes() {
             {filtrados.map(a => (
               <tr key={a.id}>
                 <td>
-                  {a.foto_perfil_url ? <img src={a.foto_perfil_url} alt="perfil" className="foto-perfil" onError={e => e.target.style.display='none'} /> : <div className="foto-perfil" style={{background:'#ddd', display:'flex', alignItems:'center', justifyContent:'center'}}>👤</div>}
+                  {a.foto_perfil_url ? <img src={a.foto_perfil_url} alt="perfil" className="foto-perfil" onError={e => e.target.style.display='none'} /> : <div className="foto-perfil" style={{background:'#ddd', display:'flex', alignItems:'center', justifyContent:'center'}}>??</div>}
                 </td>
                 <td><strong>{a.nome}</strong></td>
                 <td style={{color:'#888', fontSize:13}}>{a.email}</td>
@@ -98,6 +98,13 @@ export default function Acompanhantes() {
             <p style={{marginBottom:16}}><strong>Bio:</strong> {selecionado.bio || '-'}</p>
             <p style={{marginBottom:8}}><strong>CPF:</strong> {selecionado.cpf || '-'} | <strong>RG/CNH:</strong> {selecionado.rg_cnh || '-'}</p>
             {selecionado.data_nascimento && <p style={{marginBottom:16}}><strong>Nascimento:</strong> {new Date(selecionado.data_nascimento).toLocaleDateString('pt-BR')}</p>}
+
+            <div style={{background:'#f7f9fc', border:'1px solid #e3e8ee', borderRadius:10, padding:16, marginBottom:16}}>
+              <p style={{fontSize:13, color:'#888', marginBottom:8, fontWeight:600}}>Dados Bancarios / PIX</p>
+              <p style={{marginBottom:4}}><strong>Chave PIX:</strong> {selecionado.chave_pix || '-'}</p>
+              <p style={{marginBottom:4}}><strong>Banco:</strong> {selecionado.banco || '-'}</p>
+              <p style={{marginBottom:0}}><strong>Agencia:</strong> {selecionado.agencia || '-'} | <strong>Conta:</strong> {selecionado.conta_corrente || '-'}</p>
+            </div>
 
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:24}}>
               {selecionado.foto_documento_url && (
