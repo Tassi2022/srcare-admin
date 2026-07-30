@@ -48,7 +48,7 @@ export default function App() {
   }
 
   return (
-    <BrowserRouter basename="/srcare-admin">
+    <BrowserRouter>
       <Sidebar onLogout={handleLogout} />
       <main className="main">
         <Routes>
@@ -63,4 +63,5 @@ export default function App() {
     </BrowserRouter>
   );
 }
+
 

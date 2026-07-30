@@ -1,4 +1,4 @@
-{
+﻿{
     "name":  "srcare-admin",
     "version":  "0.1.0",
     "private":  true,
@@ -44,5 +44,7 @@
     "devDependencies":  {
                             "gh-pages":  "^6.3.0"
                         },
-    "homepage":  "https://Tassi2022.github.io/srcare-admin"
+    "homepage": "https://admin.seniorcare.social.br"
 }
+
+
