@@ -4,7 +4,8 @@ import API_URL from '../config';
 
 export default function Mensagens() {
   const [conversas, setConversas] = useState([]);
-  const [selecionado, setSelecionado] = useState(null);
+  const [selecionado, setSelecionado] = useState(null); // { id, tipo }
+  const [selecionadoNome, setSelecionadoNome] = useState('');
   const [mensagens, setMensagens] = useState([]);
   const [texto, setTexto] = useState('');
   const [carregandoConversas, setCarregandoConversas] = useState(true);
@@ -12,10 +13,12 @@ export default function Mensagens() {
   const [enviando, setEnviando] = useState(false);
   const [busca, setBusca] = useState('');
   const [acompanhantes, setAcompanhantes] = useState([]);
+  const [familias, setFamilias] = useState([]);
 
   useEffect(() => {
     carregarConversas();
     carregarAcompanhantes();
+    carregarFamilias();
   }, []);
 
   function carregarConversas() {
@@ -32,16 +35,26 @@ export default function Mensagens() {
       .catch(e => console.log(e));
   }
 
-  function abrirConversa(acompanhanteId) {
-    setSelecionado(acompanhanteId);
+  function carregarFamilias() {
+    api.get(API_URL + '/admin/familias')
+      .then(r => setFamilias(r.data.familias || []))
+      .catch(e => console.log(e));
+  }
+
+  function abrirConversa(id, tipo, nome) {
+    setSelecionado({ id, tipo });
+    setSelecionadoNome(nome);
     setBusca('');
     setCarregandoMensagens(true);
-    api.get(API_URL + '/mensagens', { params: { acompanhante_id: acompanhanteId, marcar_lido_por: 'admin' } })
+    const params = tipo === 'acompanhante'
+      ? { acompanhante_id: id, marcar_lido_por: 'admin' }
+      : { familia_id: id, marcar_lido_por: 'admin' };
+    api.get(API_URL + '/mensagens', { params })
       .then(r => setMensagens(r.data.mensagens))
       .catch(e => console.log(e))
       .finally(() => {
         setCarregandoMensagens(false);
-        setConversas(prev => prev.map(c => c.acompanhante_id === acompanhanteId ? { ...c, nao_lidas: 0 } : c));
+        setConversas(prev => prev.map(c => c.participante_id === id ? { ...c, nao_lidas: 0 } : c));
       });
   }
 
@@ -51,11 +64,10 @@ export default function Mensagens() {
 
     setEnviando(true);
     try {
-      const resp = await api.post(API_URL + '/mensagens', {
-        acompanhante_id: selecionado,
-        remetente: 'admin',
-        texto: texto.trim(),
-      });
+      const body = selecionado.tipo === 'acompanhante'
+        ? { acompanhante_id: selecionado.id, remetente: 'admin', texto: texto.trim() }
+        : { familia_id: selecionado.id, remetente: 'admin', texto: texto.trim() };
+      const resp = await api.post(API_URL + '/mensagens', body);
       setMensagens(prev => [...prev, resp.data.mensagem]);
       setTexto('');
       carregarConversas();
@@ -66,10 +78,13 @@ export default function Mensagens() {
     }
   }
 
-  const idsComConversa = new Set(conversas.map(c => c.acompanhante_id));
+  const idsComConversa = new Set(conversas.map(c => c.participante_id));
 
-  const resultadosBusca = busca.trim()
+  const resultadosBuscaAcomp = busca.trim()
     ? acompanhantes.filter(a => (a.nome || '').toLowerCase().includes(busca.trim().toLowerCase()))
+    : [];
+  const resultadosBuscaFamilia = busca.trim()
+    ? familias.filter(f => (f.nome || '').toLowerCase().includes(busca.trim().toLowerCase()))
     : [];
 
   return (
@@ -79,34 +94,46 @@ export default function Mensagens() {
       <div style={{ display: 'flex', height: '75vh', background: '#fff', borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
 
         {/* Lista de conversas + busca */}
-        <div style={{ width: 300, borderRight: '1px solid #eee', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ width: 320, borderRight: '1px solid #eee', display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: 12, borderBottom: '1px solid #eee' }}>
             <input
               type="text"
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar acompanhante para iniciar conversa..."
+              placeholder="Buscar acompanhante ou familia..."
               style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #ddd', fontSize: 13 }}
             />
           </div>
 
           <div style={{ flex: 1, overflowY: 'auto' }}>
             {busca.trim() ? (
-              resultadosBusca.length === 0 ? (
-                <div style={{ padding: 16, color: '#888', fontSize: 13 }}>Nenhum acompanhante encontrado</div>
+              (resultadosBuscaAcomp.length === 0 && resultadosBuscaFamilia.length === 0) ? (
+                <div style={{ padding: 16, color: '#888', fontSize: 13 }}>Nenhum resultado encontrado</div>
               ) : (
-                resultadosBusca.map(a => (
-                  <div
-                    key={a.id}
-                    onClick={() => abrirConversa(a.id)}
-                    style={{ padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', background: selecionado === a.id ? '#eef4fa' : '#fff' }}
-                  >
-                    <strong style={{ fontSize: 14 }}>{a.nome}</strong>
-                    <div style={{ fontSize: 12, color: '#888' }}>
-                      {idsComConversa.has(a.id) ? 'Já tem conversa' : 'Iniciar nova conversa'}
+                <>
+                  {resultadosBuscaAcomp.map(a => (
+                    <div
+                      key={'acomp-' + a.id}
+                      onClick={() => abrirConversa(a.id, 'acompanhante', a.nome)}
+                      style={{ padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', background: selecionado && selecionado.id === a.id ? '#eef4fa' : '#fff' }}
+                    >
+                      <strong style={{ fontSize: 14 }}>{a.nome}</strong>
+                      <span style={{ fontSize: 10, marginLeft: 6, padding: '2px 6px', borderRadius: 8, background: '#e8f0fe', color: '#4A90E2' }}>Acompanhante</span>
+                      <div style={{ fontSize: 12, color: '#888' }}>{idsComConversa.has(a.id) ? 'Já tem conversa' : 'Iniciar nova conversa'}</div>
                     </div>
-                  </div>
-                ))
+                  ))}
+                  {resultadosBuscaFamilia.map(f => (
+                    <div
+                      key={'fam-' + f.id}
+                      onClick={() => abrirConversa(f.id, 'familia', f.nome)}
+                      style={{ padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', background: selecionado && selecionado.id === f.id ? '#eef4fa' : '#fff' }}
+                    >
+                      <strong style={{ fontSize: 14 }}>{f.nome}</strong>
+                      <span style={{ fontSize: 10, marginLeft: 6, padding: '2px 6px', borderRadius: 8, background: '#eafaf0', color: '#27AE60' }}>Familia</span>
+                      <div style={{ fontSize: 12, color: '#888' }}>{idsComConversa.has(f.id) ? 'Já tem conversa' : 'Iniciar nova conversa'}</div>
+                    </div>
+                  ))}
+                </>
               )
             ) : carregandoConversas ? (
               <div style={{ padding: 16, color: '#888' }}>Carregando...</div>
@@ -115,17 +142,22 @@ export default function Mensagens() {
             ) : (
               conversas.map(c => (
                 <div
-                  key={c.acompanhante_id}
-                  onClick={() => abrirConversa(c.acompanhante_id)}
+                  key={c.tipo + '-' + c.participante_id}
+                  onClick={() => abrirConversa(c.participante_id, c.tipo, c.participante_nome)}
                   style={{
                     padding: '12px 16px',
                     cursor: 'pointer',
                     borderBottom: '1px solid #f0f0f0',
-                    background: selecionado === c.acompanhante_id ? '#eef4fa' : '#fff',
+                    background: selecionado && selecionado.id === c.participante_id ? '#eef4fa' : '#fff',
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <strong style={{ fontSize: 14 }}>{c.acompanhante_nome || 'Acompanhante #' + c.acompanhante_id}</strong>
+                    <span>
+                      <strong style={{ fontSize: 14 }}>{c.participante_nome || 'Sem nome'}</strong>
+                      <span style={{ fontSize: 10, marginLeft: 6, padding: '2px 6px', borderRadius: 8, background: c.tipo === 'acompanhante' ? '#e8f0fe' : '#eafaf0', color: c.tipo === 'acompanhante' ? '#4A90E2' : '#27AE60' }}>
+                        {c.tipo === 'acompanhante' ? 'Acompanhante' : 'Familia'}
+                      </span>
+                    </span>
                     {c.nao_lidas > 0 && (
                       <span style={{ background: '#e74c3c', color: '#fff', borderRadius: 10, fontSize: 11, padding: '2px 7px' }}>
                         {c.nao_lidas}
@@ -144,9 +176,12 @@ export default function Mensagens() {
         {/* Janela do chat */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           {!selecionado ? (
-            <div style={{ margin: 'auto', color: '#888' }}>Selecione uma conversa ou busque um acompanhante</div>
+            <div style={{ margin: 'auto', color: '#888' }}>Selecione uma conversa ou busque um contato</div>
           ) : (
             <>
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid #eee', fontWeight: 'bold' }}>
+                {selecionadoNome} <span style={{ fontSize: 12, color: '#888', fontWeight: 'normal' }}>({selecionado.tipo === 'acompanhante' ? 'Acompanhante' : 'Familia'})</span>
+              </div>
               <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
                 {carregandoMensagens ? (
                   <div style={{ color: '#888' }}>Carregando mensagens...</div>
