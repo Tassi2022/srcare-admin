@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import api from '../auth';
 import API_URL from '../config';
 
@@ -10,6 +10,8 @@ const PROFISSOES = {
   cuidador_idosos: 'Cuidador de Idosos',
   auxiliar_enfermagem: 'Auxiliar de Enfermagem',
   fisioterapeuta: 'Fisioterapeuta',
+  massoterapeuta: 'Massoterapeuta',
+  personal_trainer: 'Personal Trainer',
   outro: 'Outro',
 };
 
@@ -96,7 +98,7 @@ export default function Acompanhantes() {
             <p style={{color:'#888', marginBottom:8}}>{selecionado.email} | {selecionado.telefone}</p>
             <p style={{marginBottom:16}}><strong>Profissao:</strong> {PROFISSOES[selecionado.profissao] || selecionado.profissao}</p>
             <p style={{marginBottom:16}}><strong>Bio:</strong> {selecionado.bio || '-'}</p>
-            <p style={{marginBottom:8}}><strong>CPF:</strong> {selecionado.cpf || '-'} | <strong>RG/CNH:</strong> {selecionado.rg_cnh || '-'}</p>
+            <p style={{marginBottom:8}}><strong>CPF:</strong> {selecionado.cpf || '-'} | <strong>{selecionado.tipo_documento || 'RG'}:</strong> {selecionado.rg_cnh || '-'}</p>
             {selecionado.data_nascimento && <p style={{marginBottom:16}}><strong>Nascimento:</strong> {new Date(selecionado.data_nascimento).toLocaleDateString('pt-BR')}</p>}
 
             <div style={{background:'#f7f9fc', border:'1px solid #e3e8ee', borderRadius:10, padding:16, marginBottom:16}}>
@@ -109,7 +111,7 @@ export default function Acompanhantes() {
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:24}}>
               {selecionado.foto_documento_url && (
                 <div>
-                  <p style={{fontSize:13, color:'#888', marginBottom:8}}>Documento (RG/CNH)</p>
+                  <p style={{fontSize:13, color:'#888', marginBottom:8}}>Documento ({selecionado.tipo_documento || 'RG'})</p>
                   <img src={selecionado.foto_documento_url} alt="documento" style={{width:'100%', borderRadius:8, border:'1px solid #ddd'}} onError={e => e.target.src='https://via.placeholder.com/200x150?text=Erro'} />
                 </div>
               )}
@@ -140,3 +142,5 @@ export default function Acompanhantes() {
     </div>
   );
 }
+
+
